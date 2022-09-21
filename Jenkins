@@ -1,0 +1,28 @@
+pipeline {
+    agent any 
+    stages {
+        stage('git') { 
+            steps {
+          sh 'rm -rf /var/lib/jenkins/workspace/hadoop/hadoop'
+          sh 'git clone git@github.com:apache/hadoop.git '
+          sh 'ls -la '
+            }
+        
+        }
+        stage('Deploy') { 
+            steps {
+                sh 'pwd'
+                dir("hadoop") {
+                        sh "pwd"
+                        sh 'mvn package -Pdist -DskipTests -Dtar -Dmaven.javadoc.skip=true'
+                        
+                    }
+                    
+                
+                
+                
+            }
+        }
+        
+    }
+}

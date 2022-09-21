@@ -1,0 +1,113 @@
+Запуск 
+
+mkdir /usr/local/hadoop
+
+Распаковываем содержимое загруженного архива в созданный каталог:
+
+tar -zxf hadoop-*.tar.gz -C /usr/local/hadoop --strip-components 1
+
+Создаем пользователя hadoop:
+
+useradd hadoop -m
+
+И зададим ему пароль:
+
+passwd hadoop
+
+Задаем в качестве владельца каталога hadoop созданного пользователя:
+
+chown -R hadoop:hadoop /usr/local/hadoop
+
+Создаем файл с профилем:
+
+vi /etc/profile.d/hadoop.sh
+
+export HADOOP_HOME=/usr/local/hadoop
+export HADOOP_HDFS_HOME=$HADOOP_HOME
+export HADOOP_MAPRED_HOME=$HADOOP_HOME
+export HADOOP_COMMON_HOME=$HADOOP_HOME
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+export HADOOP_OPTS="$HADOOP_OPTS -Djava.library.path=$HADOOP_HOME/lib/native"
+export YARN_HOME=$HADOOP_HOME
+export PATH="$PATH:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin"
+
+vi /usr/local/hadoop/etc/hadoop/hadoop-env.sh
+
+Находим:
+
+# export JAVA_HOME=
+
+Меняем на:
+
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+
+Заходим под пользователем hadoop:
+
+su - hadoop
+
+ssh-keygen
+
+ssh-copy-id localhost
+
+vi /usr/local/hadoop/etc/hadoop/core-site.xml
+
+<configuration>
+   <property>
+      <name>fs.default.name</name>
+      <value>hdfs://hadoop1:9000</value>
+   </property>
+</configuration>
+
+vi /usr/local/hadoop/etc/hadoop/hdfs-site.xml
+
+<configuration>
+   <property>
+      <name>dfs.replication</name>
+      <value>3</value>
+   </property>
+   <property>
+      <name>dfs.name.dir</name>
+      <value>file:///hadoop/hdfs/namenode</value>
+   </property>
+   <property>
+      <name>dfs.data.dir</name>
+      <value>file:///hadoop/hdfs/datanode</value>
+   </property>
+</configuration>
+
+vi /usr/local/hadoop/etc/hadoop/mapred-site.xml
+
+
+<configuration>
+   <property>
+      <name>mapreduce.framework.name</name>
+      <value>yarn</value>
+   </property>
+</configuration>
+
+vi /usr/local/hadoop/etc/hadoop/yarn-site.xml
+
+
+  <property>
+    <name>yarn.nodemanager.aux-services</name>
+    <value>mapreduce_shuffle</value>
+  </property>
+</configuration>
+
+mkdir -p /hadoop/hdfs/{namenode,datanode}
+
+Для каталога /hadoop выставим в качестве владельца созданного пользователя hadoop:
+
+chown -R hadoop:hadoop /hadoop
+
+su - hadoop
+
+Создаем файловую систему:
+
+$ /usr/local/hadoop/bin/hdfs namenode -format
+
+Для запуска кластера выполняем следующие команды:
+
+$ /usr/local/hadoop/sbin/start-dfs.sh
+
+$ /usr/local/hadoop/sbin/start-yarn.sh

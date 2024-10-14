@@ -382,3 +382,16 @@ pipeline {
         }
     }
 }
+
+
+def jobListCommand = "oc get jobs --no-headers | awk '{\$3 > 0 {print \$1}}'"
+
+
+
+def jobListCommand = "oc get jobs --no-headers | awk '{print \$3 > 0 ? \$1 : \"\"}'"
+
+
+
+sh '''
+    oc get jobs --no-headers | awk '$3 > 0 {print $1}'
+'''

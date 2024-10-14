@@ -80,6 +80,60 @@ pipeline {
                     // Логика очистки ресурсов можно добавить здесь
                 }
             }
+
+pipeline {
+    agent any
+    stages {
+        stage('Deploy to OpenShift') {
+            steps {
+                script {
+                    // Пример команды для деплоя в OpenShift
+                    sh 'oc apply -f your-openshift-config.yaml'
+                }
+            }
+        }
+        stage('Check Job and Containers') {
+            steps {
+                script {
+                    // Получаем имя Job из OpenShift
+                    def jobName = ''
+                    timeout(time: 3, unit: 'MINUTES') {
+                        waitUntil {
+                            jobName = sh(script: "oc get job -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
+                            return jobName != ''
+                        }
+                    }
+
+                    if (jobName) {
+                        echo "Job найден: ${jobName}"
+                        def terminatedContainers = false
+                        
+                        for (int i = 0; i < 5; i++) {
+                            echo "Проверка статусов контейнеров, попытка ${i + 1}"
+                            def containerStatuses = sh(script: "oc get pod -l job-name=${jobName} -o jsonpath='{.items[0].status.containerStatuses[*].state}'", returnStdout: true).trim()
+                            echo "Статусы контейнеров: ${containerStatuses}"
+                            
+                            // Проверка на наличие контейнеров в состоянии terminated
+                            if (containerStatuses.contains("terminated")) {
+                                terminatedContainers = true
+                                break
+                            }
+                            
+                            // Ждем 60 секунд до следующей проверки
+                            sleep(time: 60, unit: 'SECONDS')
+                        }
+
+                        if (!terminatedContainers) {
+                            error("Не найдено ни одного контейнера со статусом 'terminated'. Проверьте статус Job.")
+                        }
+                    } else {
+                        error("Job не найден.")
+                    }
+                }
+            }
+        }
+    }
+}
         }
     }
 }

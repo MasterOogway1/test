@@ -92,48 +92,52 @@ pipeline {
                 }
             }
         }
-        stage('Check Job and Containers') {
+        stage('Monitor and Clean Up Job') {
             steps {
                 script {
                     // Получаем имя Job из OpenShift
-                    def jobName = ''
-                    timeout(time: 3, unit: 'MINUTES') {
-                        waitUntil {
-                            jobName = sh(script: "oc get job -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
-                            return jobName != ''
-                        }
+                    def jobName = sh(script: "oc get job -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
+                    if (!jobName) {
+                        error "Job не найден!"
                     }
+                    echo "Job найден: ${jobName}"
 
-                    if (jobName) {
-                        echo "Job найден: ${jobName}"
-                        def terminatedContainers = false
-                        
-                        for (int i = 0; i < 5; i++) {
-                            echo "Проверка статусов контейнеров, попытка ${i + 1}"
-                            def containerStatuses = sh(script: "oc get pod -l job-name=${jobName} -o jsonpath='{.items[0].status.containerStatuses[*].state}'", returnStdout: true).trim()
-                            echo "Статусы контейнеров: ${containerStatuses}"
-                            
-                            // Проверка на наличие контейнеров в состоянии terminated
-                            if (containerStatuses.contains("terminated")) {
-                                terminatedContainers = true
+                    // Переменная для хранения статуса
+                    def isTerminated = false
+                    def retryCount = 5
+
+                    // Проверка статусов контейнеров
+                    for (int i = 0; i < retryCount; i++) {
+                        def podList = sh(script: "oc get pods --selector=job-name=${jobName} -o jsonpath='{.items[*].metadata.name}'", returnStdout: true).trim().split()
+
+                        for (podName in podList) {
+                            def terminatedState = sh(script: """
+                                oc get pod ${podName} -o jsonpath='{.status.containerStatuses[*].state.terminated}'
+                            """, returnStdout: true).trim()
+
+                            if (terminatedState) {
+                                echo "Найден контейнер в состоянии Terminated в Pod: ${podName}"
+                                isTerminated = true
                                 break
                             }
-                            
-                            // Ждем 60 секунд до следующей проверки
-                            sleep(time: 60, unit: 'SECONDS')
                         }
 
-                        if (!terminatedContainers) {
-                            error("Не найдено ни одного контейнера со статусом 'terminated'. Проверьте статус Job.")
+                        if (isTerminated) {
+                            break
                         }
+                        // Ожидание перед следующей попыткой проверки
+                        sleep(20)
+                    }
+
+                    // Удаляем Job, если обнаружен Terminated контейнер
+                    if (isTerminated) {
+                        echo "Удаление Job: ${jobName} из-за Terminated контейнера"
+                        sh "oc delete job ${jobName}"
                     } else {
-                        error("Job не найден.")
+                        echo "Контейнеры не достигли состояния Terminated!"
                     }
                 }
             }
-        }
-    }
-}
         }
     }
 }

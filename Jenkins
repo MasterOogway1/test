@@ -247,3 +247,68 @@ pipeline {
         }
     }
 }
+
+
+pipeline {
+    agent any
+    stages {
+        stage('Deploy to OpenShift') {
+            steps {
+                script {
+                    // Пример команды для деплоя в OpenShift
+                    sh 'oc apply -f your-openshift-config.yaml'
+                }
+            }
+        }
+        stage('Monitor and Clean Up Job') {
+            steps {
+                script {
+                    // Получаем список активных Job в OpenShift через grep
+                    def jobListCommand = """
+                        oc get jobs --no-headers | awk '$3 > 0 {print $1}'
+                    """
+                    def jobList = sh(script: jobListCommand, returnStdout: true).trim().split()
+
+                    if (jobList.empty) {
+                        echo "Активных Job нет!"
+                    } else {
+                        echo "Найдены активные Jobs: ${jobList.join(', ')}"
+                        
+                        // Переменная для хранения статуса
+                        def isTerminated = false
+                        def retryCount = 5
+
+                        // Проверка статусов контейнеров
+                        for (int i = 0; i < retryCount; i++) {
+                            isTerminated = true // Предположим, что все Job завершены
+
+                            for (job in jobList) {
+                                def statusCommand = """
+                                    oc get job ${job} -o jsonpath='{.status.succeeded}'
+                                """
+                                def status = sh(script: statusCommand, returnStdout: true).trim()
+
+                                if (status == '') {
+                                    isTerminated = false
+                                    echo "Job ${job} все еще активен или завершился с ошибкой."
+                                }
+                            }
+
+                            if (isTerminated) {
+                                echo "Все Jobs завершены."
+                                break
+                            } else {
+                                echo "Ожидание завершения Jobs..."
+                                sleep 60
+                            }
+                        }
+
+                        if (!isTerminated) {
+                            error "Некоторые Jobs не завершились успешно."
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

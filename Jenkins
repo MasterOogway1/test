@@ -26,3 +26,60 @@ pipeline {
         
     }
 }
+pipeline {
+    agent any
+    stages {
+        stage('Deploy to OpenShift') {
+            steps {
+                script {
+                    // Команда для деплоя в OpenShift
+                    sh 'oc apply -f your-openshift-config.yaml'
+                }
+            }
+        }
+        stage('Get Job Name') {
+            steps {
+                script {
+                    // Получаем список Job и берем имя нужного
+                    def jobName = sh(script: "oc get job -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
+                    
+                    if (jobName) {
+                        echo "Job Name: ${jobName}"
+                        // Сохраняем имя Job в переменную среды для использования в следующих стадиях
+                        env.OPENSHIFT_JOB_NAME = jobName
+                    } else {
+                        echo "Job не найдено, пропуск следующих стадий."
+                        env.OPENSHIFT_JOB_NAME = null
+                    }
+                }
+            }
+        }
+        stage('Monitor Job Status') {
+            when {
+                expression { return env.OPENSHIFT_JOB_NAME != null }
+            }
+            steps {
+                script {
+                    def jobName = env.OPENSHIFT_JOB_NAME
+                    def isJobCompleted = false
+                    
+                    echo "Мониторинг статуса Job: ${jobName}"
+                    // Логика здесь для мониторинга статуса Job
+                }
+            }
+        }
+        stage('Cleanup') {
+            when {
+                expression { return env.OPENSHIFT_JOB_NAME != null }
+            }
+            steps {
+                script {
+                    def jobName = env.OPENSHIFT_JOB_NAME
+                    echo "Очистка ресурсов для Job: ${jobName}"
+                    
+                    // Логика очистки ресурсов можно добавить здесь
+                }
+            }
+        }
+    }
+}

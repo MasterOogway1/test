@@ -395,3 +395,70 @@ def jobListCommand = "oc get jobs --no-headers | awk '{print \$3 > 0 ? \$1 : \"\
 sh '''
     oc get jobs --no-headers | awk '$3 > 0 {print $1}'
 '''
+pipeline {
+    agent any
+    stages {
+        stage('Deploy to OpenShift') {
+            steps {
+                script {
+                    // Пример команды для деплоя в OpenShift
+                    sh 'oc apply -f your-openshift-config.yaml'
+                }
+            }
+        }
+        stage('Monitor and Clean Up Job') {
+            steps {
+                script {
+                    // Проверка наличия активных Job
+                    def jobCount = sh(script: "oc get jobs --no-headers | wc -l", returnStdout: true).trim().toInteger()
+
+                    if (jobCount == 0) {
+                        echo "Активных Job нет. Пропустить фазу."
+                    } else {
+                        // Получаем список Job с не нулевым количеством завершённых подов
+                        def jobListCommand = """
+                            oc get jobs --no-headers | awk '$3 > 0 {print $1}'
+                        """
+                        def jobList = sh(script: jobListCommand, returnStdout: true).trim().split()
+
+                        echo "Найдены активные Jobs: ${jobList.join(', ')}"
+
+                        // Переменная для хранения статуса
+                        def isTerminated = false
+                        def retryCount = 5
+
+                        // Проверка статусов контейнеров
+                        for (int i = 0; i < retryCount; i++) {
+                            jobList.each { jobName ->
+                                def podList = sh(script: "oc get pods --selector=job-name=${jobName} -o json", returnStdout: true)
+                                def pods = readJSON(text: podList).items
+
+                                pods.each { pod ->
+                                    def containerStatuses = pod.status.containerStatuses
+                                    containerStatuses.each { containerStatus ->
+                                        if (containerStatus.state.terminated != null) {
+                                            isTerminated = true
+                                        }
+                                    }
+                                }
+
+                                if (isTerminated) {
+                                    echo "Один из контейнеров для Job ${jobName} достиг состояния Terminated. Удаление Job."
+                                    sh "oc delete job ${jobName}"
+                                    break
+                                }
+                            }
+
+                            if (!isTerminated) {
+                                echo "Контейнеры все еще работают. Повторная проверка через 30 секунд."
+                                sleep(time: 30, unit: 'SECONDS')
+                            } else {
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

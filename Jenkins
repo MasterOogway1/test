@@ -191,3 +191,59 @@ pipeline {
         }
     }
 }
+
+pipeline {
+    agent any
+    stages {
+        stage('Deploy to OpenShift') {
+            steps {
+                script {
+                    // Пример команды для деплоя в OpenShift
+                    sh 'oc apply -f your-openshift-config.yaml'
+                }
+            }
+        }
+        stage('Monitor and Clean Up Job') {
+            steps {
+                script {
+                    // Проверяем наличие активных Job в OpenShift
+                    def jobList = sh(script: "oc get job --field-selector=status.active=1 -o jsonpath='{.items[*].metadata.name}'", returnStdout: true).trim()
+                    
+                    if (!jobList) {
+                        echo "Активных Job нет!"
+                    } else {
+                        echo "Найдены активные Jobs: ${jobList}"
+                        
+                        // Переменная для хранения статуса
+                        def isTerminated = false
+                        def retryCount = 5
+
+                        // Проверка статусов контейнеров
+                        for (int i = 0; i < retryCount; i++) {
+                            def podList = sh(script: "oc get pods --selector=job-name=${jobList} -o json", returnStdout: true)
+                            def pods = readJSON(text: podList).items
+
+                            pods.each { pod ->
+                                def containerStatuses = pod.status.containerStatuses
+                                containerStatuses.each { containerStatus ->
+                                    if (containerStatus.state.terminated != null) {
+                                        isTerminated = true
+                                    }
+                                }
+                            }
+
+                            if (isTerminated) {
+                                echo "Один из контейнеров достиг состояния Terminated. Удаление Job."
+                                sh "oc delete job ${jobList}"
+                                break
+                            } else {
+                                echo "Контейнеры все еще работают. Повторная проверка через 30 секунд."
+                                sleep(time: 30, unit: 'SECONDS')
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

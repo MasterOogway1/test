@@ -147,3 +147,12 @@ stage('List Archives') {
         src: "{{ install_dir }}/{{ vmutils_archive }}"
         dest: "{{ install_dir }}"
         remote_src: yes
+
+
+
+ withCredentials([usernamePassword(credentialsId: 'my-credential-id', passwordVariable: 'ANSIBLE_PASSWORD', usernameVariable: 'ANSIBLE_USER')]) {
+                           sh '''
+                               ansible-playbook -i inventory.ini playbook.yml \
+                               --extra-vars "ansible_user=${ANSIBLE_USER} ansible_ssh_pass=${ANSIBLE_PASSWORD}"
+                           '''
+                       }

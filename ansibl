@@ -96,3 +96,18 @@ pipeline {
         }
     }
 }
+
+
+stage('List Archives') {
+        def files = sh(script: 'ls /path/to/archives/*.tar.gz', returnStdout: true).trim().split('\n')
+        echo "Found archives: ${files.join(', ')}"
+        
+        // В дальнейшем используйте эти названия в вашем pipeline как вам нужно
+        // Например:
+        env.VM_ARCHIVE = files.find { it.contains('victoria') }
+        env.VMUTILS_ARCHIVE = files.find { it.contains('vmutils') }
+    }
+    
+    stage('Deploy') {
+        sh "ansible-playbook your_playbook.yml -e vm_archive=${env.VM_ARCHIVE} -e vmutils_archive=${env.VMUTILS_ARCHIVE}"
+    }

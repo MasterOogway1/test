@@ -1,0 +1,57 @@
+pipeline {
+    agent any
+
+    environment {
+        NEXUS_URL = 'http://your-nexus-url/repository/your-repo'
+        ARTIFACT_NAME = 'your-artifact-name.tar.gz'
+        REMOTE_SERVER = 'your.remote.server'
+        REMOTE_USER = 'your-user'
+        SERVICE_NAME = 'your-service-name'
+    }
+
+    stages {
+        stage('Download from Nexus') {
+            steps {
+                script {
+                    sh "curl -u <nexus-username>:<nexus-password> -O ${NEXUS_URL}/${ARTIFACT_NAME}"
+                }
+            }
+        }
+        
+        stage('Transfer to Server') {
+            steps {
+                script {
+                    // Ansible playbook должно быть предварительно написано и проверено
+                    sh "ansible-playbook -i ${REMOTE_SERVER}, transfer-artifact.yml --extra-vars 'artifact_name=${ARTIFACT_NAME}'"
+                }
+            }
+        }
+
+        stage('Start Service') {
+            steps {
+                script {
+                    // Ansible playbook для запуска сервиса
+                    sh "ansible-playbook -i ${REMOTE_SERVER}, start-service.yml --extra-vars 'service_name=${SERVICE_NAME}'"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
+---
+- name: Transfer artifact to remote server
+  hosts: all
+  vars:
+    ansible_user: '{{ lookup("env", "REMOTE_USER") }}'
+    destination: '/path/to/target/directory'
+  tasks:
+    - name: Copy artifact
+      copy:
+        src: '{{ artifact_name }}'
+        dest: '{{ destination }}/{{ artifact_name }}'
+

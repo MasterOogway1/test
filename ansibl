@@ -55,3 +55,44 @@ pipeline {
         src: '{{ artifact_name }}'
         dest: '{{ destination }}/{{ artifact_name }}'
 
+pipeline {
+    agent any
+
+    environment {
+        NEXUS_URL = 'http://nexus.example.com/repository/path/to/distribution.tar.gz'
+        NEXUS_CREDENTIALS = credentials('nexus-credentials-id') // Убедитесь, что креды настроены в Jenkins
+        ARCHIVE_NAME = 'distribution.tar.gz'
+        INSTALL_DIR = '/RRM'
+        ANSIBLE_PLAYBOOK = 'deploy.yml'
+        ANSIBLE_INVENTORY = 'path/to/inventory' // Укажите путь к вашему Ansible инвентарю
+    }
+
+    stages {
+        stage('Download from Nexus') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: "${NEXUS_CREDENTIALS}", usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
+                        sh """
+                        curl -u $NEXUS_USER:$NEXUS_PASS -o ${ARCHIVE_NAME} ${NEXUS_URL}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Run Ansible Playbook') {
+            steps {
+                script {
+                    sh """
+                    ansible-playbook -i ${ANSIBLE_INVENTORY} ${ANSIBLE_PLAYBOOK} --extra-vars "archive_name=${ARCHIVE_NAME} install_dir=${INSTALL_DIR}"
+                    """
+                }
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}

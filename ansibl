@@ -156,3 +156,12 @@ stage('List Archives') {
                                --extra-vars "ansible_user=${ANSIBLE_USER} ansible_ssh_pass=${ANSIBLE_PASSWORD}"
                            '''
                        }
+
+
+ ansiblePlaybook(
+                        playbook: 'deploy.yml',
+                        inventory: ANSIBLE_INVENTORY,
+                        extraVars: [
+                            INSTALL_DIR: "${INSTALL_DIR}"
+                        ]
+                    )

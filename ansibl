@@ -111,3 +111,39 @@ stage('List Archives') {
     stage('Deploy') {
         sh "ansible-playbook your_playbook.yml -e vm_archive=${env.VM_ARCHIVE} -e vmutils_archive=${env.VMUTILS_ARCHIVE}"
     }
+
+
+
+
+---
+- name: Deploy archives
+  hosts: your_target_hosts
+  become: true
+  vars:
+    install_dir: /RRM
+    vm_archive: "{{ vm_archive }}"
+    vmutils_archive: "{{ vmutils_archive }}"
+  tasks:
+    - name: Copy Victoria Metrics archive to remote server
+      ansible.builtin.copy:
+        src: "/path/to/{{ vm_archive }}"
+        dest: "{{ install_dir }}/{{ vm_archive }}"
+        mode: '0644'
+
+    - name: Copy VMUtils archive to remote server
+      ansible.builtin.copy:
+        src: "/path/to/{{ vmutils_archive }}"
+        dest: "{{ install_dir }}/{{ vmutils_archive }}"
+        mode: '0644'
+
+    - name: Unpack Victoria Metrics archive
+      ansible.builtin.unarchive:
+        src: "{{ install_dir }}/{{ vm_archive }}"
+        dest: "{{ install_dir }}"
+        remote_src: yes
+
+    - name: Unpack VMUtils archive
+      ansible.builtin.unarchive:
+        src: "{{ install_dir }}/{{ vmutils_archive }}"
+        dest: "{{ install_dir }}"
+        remote_src: yes

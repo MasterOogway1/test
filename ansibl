@@ -165,3 +165,35 @@ stage('List Archives') {
                             INSTALL_DIR: "${INSTALL_DIR}"
                         ]
                     )
+
+
+
+---
+- name: Ensure installation directory exists
+  file:
+    path: "{{ install_dir }}"
+    state: directory
+
+- name: Copy Victoria Metrics archive to remote server
+  ansible.builtin.copy:
+    src: "/path/to/{{ vm_archive }}"
+    dest: "{{ install_dir }}/{{ vm_archive }}"
+    mode: '0644'
+
+- name: Copy VMUtils archive to remote server
+  ansible.builtin.copy:
+    src: "/path/to/{{ vmutils_archive }}"
+    dest: "{{ install_dir }}/{{ vmutils_archive }}"
+    mode: '0644'
+
+- name: Unpack Victoria Metrics archive
+  ansible.builtin.unarchive:
+    src: "{{ install_dir }}/{{ vm_archive }}"
+    dest: "{{ install_dir }}"
+    remote_src: yes
+
+- name: Unpack VMUtils archive
+  ansible.builtin.unarchive:
+    src: "{{ install_dir }}/{{ vmutils_archive }}"
+    dest: "{{ install_dir }}"
+    remote_src: yes

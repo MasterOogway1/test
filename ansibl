@@ -197,3 +197,17 @@ stage('List Archives') {
     src: "{{ install_dir }}/{{ vmutils_archive }}"
     dest: "{{ install_dir }}"
     remote_src: yes
+
+
+
+   // Поиск RPM-файла с именем grafana
+    def grafanaFiles = sh(script: 'ls /path/to/archives/*.rpm', returnStdout: true).trim().split('\n')
+    echo "Found RPMs: ${grafanaFiles.join(', ')}"
+    
+    // Установка переменной окружения для rpm Grafana, если он найден
+    if (env.ROLE_INSTALL_GRAFANA && grafanaFiles) {
+        env.GRAFANA_RPM = grafanaFiles.find { it.contains('grafana') }
+        echo "Grafana RPM found: ${env.GRAFANA_RPM}"
+    } else {
+        echo "Grafana RPM not found or role is not specified."
+    }

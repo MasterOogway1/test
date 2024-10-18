@@ -211,3 +211,13 @@ stage('List Archives') {
     } else {
         echo "Grafana RPM not found or role is not specified."
     }
+
+    - name: Install Grafana RPM package
+      yum:
+        name: "/opt/packages/grafana.rpm"
+        state: present
+
+    - name: Clean up temporary files
+      file:
+        path: "/tmp/grafana.rpm"
+        state: absent

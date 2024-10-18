@@ -234,3 +234,4 @@ stage('List Archives') {
                         ansible-playbook /path/to/playbook.yml --extra-vars "${ansibleVars}"
                     """
                 }
+def extraVarsJson = readJSON text: "{${ansibleVars.split(' ').collect { "\"${it.split('=')[0]}\":\"${it.split('=')[1]}\"" }.join(',')}}"

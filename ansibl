@@ -221,3 +221,16 @@ stage('List Archives') {
       file:
         path: "/tmp/grafana.rpm"
         state: absent
+                   def ansibleVars
+
+                    if (params.roles == 'install_grafana') {
+                        ansibleVars = "grafana_rpm=${GRAFANA_RPM}"
+                    } else {
+                        ansibleVars = "vm_archive=${VM_ARCHIVE} vmutils_archive=${VMUTILS_ARCHIVE}"
+                    }
+
+                    // Запускаем playbook с передачей переменных
+                    sh """
+                        ansible-playbook /path/to/playbook.yml --extra-vars "${ansibleVars}"
+                    """
+                }

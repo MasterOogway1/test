@@ -237,3 +237,29 @@ stage('List Archives') {
 def extraVarsJson = readJSON text: "{${ansibleVars.split(' ').collect { "\"${it.split('=')[0]}\":\"${it.split('=')[1]}\"" }.join(',')}}"
 
  ansibleVars = "--extra-vars \"grafana_rpm='${GRAFANA_RPM}' vm_archive='${VM_ARCHIVE}' vmutils_archive='${VMUTILS_ARCHIVE}'\""
+
+
+ stage('Execute Ansible Playbook') {
+            steps {
+                script {
+                    def extraVarsMap = [
+                        nodes: "$stand",
+                        role: "${params.roles}"
+                    ]
+
+                    if (params.roles == 'install_grafana') {
+                        extraVarsMap['vm_archive'] = "${VM_ARCHIVE}"
+                        extraVarsMap['vmutils_archive'] = "${VMUTILS_ARCHIVE}"
+                        extraVarsMap['grafana_rpm'] = "${GRAFANA_RPM}"
+                    }
+
+                    ansiblePlaybook(
+                        installation: 'ansible210-py3',
+                        playbook: 'deploy.yml',
+                        inventory: 'inventory.ini',
+                        disableHostKeyChaking: true,
+                        extraVars: extraVarsMap + [extras: "--ssh-common-args='-o StrictHostKeyChecking=no'"]
+                    )
+                }
+            }
+        }

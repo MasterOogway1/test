@@ -295,3 +295,11 @@ def extraVarsJson = readJSON text: "{${ansibleVars.split(' ').collect { "\"${it.
   become_user: "{{ ansible_user }}"
   environment:
     XDG_RUNTIME_DIR: "/run/user/$(id -u {{ ansible_user }})"
+
+
+
+- name: Enable linger for the user
+  ansible.builtin.shell: "sudo loginctl enable-linger {{ ansible_user }}"
+  args:
+    executable: /bin/bash
+  become: yes

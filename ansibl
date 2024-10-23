@@ -265,3 +265,4 @@ def extraVarsJson = readJSON text: "{${ansibleVars.split(' ').collect { "\"${it.
                 }
             }
         }
+{{ ansible_default_ipv4.address }}

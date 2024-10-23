@@ -34,6 +34,8 @@ pipeline {
                     sh "ansible-playbook -i ${REMOTE_SERVER}, start-service.yml --extra-vars 'service_name=${SERVICE_NAME}'"
                 }
             }
+
+{{ ansible_default_ipv4.address }}
         }
     }
 

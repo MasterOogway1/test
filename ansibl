@@ -266,3 +266,32 @@ def extraVarsJson = readJSON text: "{${ansibleVars.split(' ').collect { "\"${it.
             }
         }
 {{ ansible_default_ipv4.address }}
+
+
+- name: Enable linger for the user
+  ansible.builtin.command: "sudo loginctl enable-linger {{ ansible_user }}"
+  become: yes
+  become_user: root
+
+- name: Ensure user systemd directory exists
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.config/systemd/user"
+    state: directory
+    mode: '0755'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Create systemd service file
+  ansible.builtin.template:
+    src: my_service.service.j2
+    dest: "/home/{{ ansible_user }}/.config/systemd/user/my_service.service"
+    mode: '0644'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Reload systemd user daemon
+  ansible.builtin.command: "systemctl --user daemon-reload"
+  become: yes
+  become_user: "{{ ansible_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/$(id -u {{ ansible_user }})"

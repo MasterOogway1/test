@@ -300,6 +300,11 @@ def extraVarsJson = readJSON text: "{${ansibleVars.split(' ').collect { "\"${it.
 
 - name: Enable linger for the user
   ansible.builtin.shell: "sudo loginctl enable-linger {{ ansible_user }}"
+
+
+
+ echo "Содержимое всех .yml файлов в config_deployments:"
+                    sh 'find config_deployments -name "*.yml" -exec cat {} \\;'
   args:
     executable: /bin/bash
   become: yes

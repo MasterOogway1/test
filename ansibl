@@ -315,3 +315,10 @@ def extraVarsJson = readJSON text: "{${ansibleVars.split(' ').collect { "\"${it.
   args:
     executable: /bin/bash
   become: yes
+
+
+url_prefix:
+{% for host in groups['your_group_name'] %}
+   - "http://{{ host }}:8443"
+{% endfor %}
+

@@ -322,3 +322,5 @@ url_prefix:
    - "http://{{ host }}:8443"
 {% endfor %}
 
+
+hostvars[host]['ansible_host']

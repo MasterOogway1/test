@@ -35,6 +35,13 @@ pipeline {
                 }
             }
 
+
+
+url_prefix:
+{% for host in groups['your_group_name'] %}
+   - "http://{{ host }}:8443"
+{% endfor %}
+
 {{ ansible_default_ipv4.address }}
         }
     }

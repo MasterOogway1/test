@@ -500,6 +500,14 @@ pipeline {
             }
         }
     }
+
+
+// Удаляем соответствующий Helm release
+                                def helmReleaseName = jobName // Предполагаем совпадение имени job и Helm release
+                                sh "helm delete ${helmReleaseName}"
+                            } else {
+                                error "Проверить OS: Job ${jobName} не завершена после 3 проверок"
+                            }
 }
 
 hostvars[host]['ansible_host']

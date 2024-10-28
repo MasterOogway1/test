@@ -425,7 +425,36 @@ pipeline {
 
 
 
+pipeline {
+    agent any
 
+    stages {
+        stage('Check and Clean Up Jobs') {
+            steps {
+                script {
+                    // Получаем список всех jobs
+                    def jobsListRaw = sh(script: "kubectl get jobs --no-headers", returnStdout: true).trim()
+                    def jobsList = jobsListRaw.split("\n")
+
+                    jobsList.each { job ->
+                        def jobInfo = job.split()
+                        def jobName = jobInfo[0]
+
+                        // Проверяем статус Job
+                        def jobStatus = sh(script: "kubectl get job ${jobName} -o jsonpath='{.status.conditions[?(@.type==\"Complete\")].status}'", returnStdout: true).trim()
+                        
+                        // Проверка на статус Terminating
+                        if (jobStatus == "" || jobStatus == "Terminating") {
+                            // Удаляем Job, если она в процессе завершения
+                            echo "Deleting terminating job: ${jobName}"
+                            sh "kubectl delete job ${jobName}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 
 

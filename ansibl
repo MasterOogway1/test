@@ -384,4 +384,49 @@ stage('Monitor and Clean Up Job') {
 }
 
 
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Check and Clean Up Jobs') {
+            steps {
+                script {
+                    // Список завершённых jobs
+                    def completedJobs = []
+                    
+                    // Получаем список всех jobs
+                    def jobsListRaw = sh(script: "${osTool}/oc get jobs --no-headers", returnStdout: true).trim()
+                    def jobsList = jobsListRaw.split("\n")
+
+                    jobsList.each { job ->
+                        def jobInfo = job.split()
+                        def jobName = jobInfo[0]
+                        def completions = jobInfo[2]  // Проверьте правильность индекса
+
+                        // Проверяем если job завершён
+                        if (completions == '1/1') {  // Убедитесь в правильности условия
+                            completedJobs.add(jobName)
+                        }
+                    }
+
+                    // Если все jobs завершены, удаляем Helm Release
+                    if (completedJobs.size() == jobsList.size()) {
+                        echo "All jobs are completed. Deleting Helm release..."
+                        sh "${osTool}/helm delete my-release"
+                    } else {
+                        echo "Some jobs are not completed yet. Skipping Helm release deletion."
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
 hostvars[host]['ansible_host']

@@ -456,6 +456,50 @@ pipeline {
     }
 }
 
+pipeline {
+    agent any
 
+    stages {
+        stage('Check and Clean Up Jobs') {
+            steps {
+                script {
+                    // Получаем список всех jobs
+                    def jobsListRaw = sh(script: "kubectl get jobs --no-headers", returnStdout: true).trim()
+                    def jobsList = jobsListRaw.split("\n")
+
+                    jobsList.each { job ->
+                        def jobInfo = job.split()
+                        def jobName = jobInfo[0]
+
+                        // Повторяем проверку статуса 3 раза с интервалом 30 секунд
+                        def isTerminating = false
+                        for (int i = 0; i < 3; i++) {
+                            // Получаем статус Job
+                            def jobStatus = sh(script: "kubectl get job ${jobName} -o jsonpath='{.status.conditions[?(@.type==\"Complete\")].status}'", returnStdout: true).trim()
+                            
+                            if (jobStatus == "" || jobStatus == "Terminating") {
+                                // Если статус все еще "" (Terminating), выставляем флаг
+                                isTerminating = true
+                            } else {
+                                // Если статус изменился, снимаем флаг и выходим из цикла
+                                isTerminating = false
+                                break
+                            }
+
+                            // Ждем 30 секунд перед следующей проверкой
+                            sleep(time: 30, unit: 'SECONDS')
+                        }
+
+                        // Удаляем Job, если она все еще в статусе Terminating после всех проверок
+                        if (isTerminating) {
+                            echo "Deleting job: ${jobName} as it is stuck in Terminating state."
+                            sh "kubectl delete job ${jobName}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 hostvars[host]['ansible_host']

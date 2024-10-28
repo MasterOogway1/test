@@ -323,4 +323,65 @@ url_prefix:
 {% endfor %}
 
 
+stage('Monitor and Clean Up Job') {
+    steps {
+        script {
+            // Проверка наличия активных Job
+            def jobCount = sh(script: "${osTool}/oc get jobs --no-headers | wc -l", returnStdout: true).trim().toInteger()
+
+            if (jobCount == 0) {
+                echo "Активных Job нет. Пропустить фазу."
+            } else {
+                // Получаем список Job с не нулевым количеством завершённых подов
+                def jobListCommand = """
+                ${osTool}/oc get jobs --no-headers | awk '{print \$1}'
+                """
+                def jobList = sh(script: jobListCommand, returnStdout: true).trim().split()
+
+                echo "Найдены активные Jobs: ${jobList.join(', ')}"
+
+                // Переменная для хранения статуса
+                def jobTerminated = [:]
+                def retryCount = 5
+
+                // Проверка статусов контейнеров
+                for (int i = 0; i < retryCount; i++) {
+                    jobList.each { jobName ->
+                        def podList = sh(script: "${osTool}/oc get pods --selector=job-name=${jobName} -o json", returnStdout: true)
+                        def pods = readJSON(text: podList).items
+
+                        pods.each { pod ->
+                            def containerStatuses = pod.status.containerStatuses
+                            containerStatuses.each { containerStatus ->
+                                if (containerStatus.state.terminated != null) {
+                                    jobTerminated[jobName] = true
+                                }
+                            }
+                        }
+
+                        if (jobTerminated[jobName]) {
+                            echo "Один из контейнеров для Job ${jobName} достиг состояния Terminated. Удаление Job."
+                            sh "${osTool}/oc delete job ${jobName}"
+                            echo "Удаление Helm Release ${jobName}"
+                            sh "${helmTool}/helm uninstall ${jobName}"
+
+                            // Удаляем job из списка, чтобы не обрабатывать повторно
+                            jobList.remove(jobName)
+                        }
+                    }
+
+                    if (jobList.isEmpty()) {
+                        echo "Все контейнеры завершены и очищены."
+                        break
+                    } else {
+                        echo "Некоторые контейнеры все еще работают. Повторная проверка через 30 секунд."
+                        sleep(time: 30, unit: 'SECONDS')
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 hostvars[host]['ansible_host']

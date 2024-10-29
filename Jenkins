@@ -462,3 +462,37 @@ pipeline {
         }
     }
 }
+
+
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git 'https://your-repo-url.git'
+            }
+        }
+        stage('Build with Maven') {
+            steps {
+                sh 'mvn clean install'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t my-app:latest .'
+            }
+        }
+        stage('Push to Docker Registry') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                        sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+                        sh 'docker push my-app:latest'
+                    }
+                }
+            }
+        }
+    }
+}

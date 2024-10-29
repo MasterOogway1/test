@@ -496,3 +496,19 @@ pipeline {
         }
     }
 }
+
+STRING Parameter для имени репозитория Git: REPO_URL
+STRING Parameter для имени Docker образа: DOCKER_IMAGE
+CHOICE Parameter для модуля Maven: BUILD_MODULE (можно задать опции например clean install)
+STRING Parameter для Docker тега: DOCKER_TAG
+
+
+
+     # сборка Docker образа
+     docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+
+     # авторизация в Docker Registry, если необходимо
+     # docker login -u <username> -p <password> <registry_url>
+
+     # пуш Docker образа в registry
+     docker push ${DOCKER_IMAGE}:${DOCKER_TAG}

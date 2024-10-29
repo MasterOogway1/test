@@ -501,8 +501,12 @@ STRING Parameter для имени репозитория Git: REPO_URL
 STRING Parameter для имени Docker образа: DOCKER_IMAGE
 CHOICE Parameter для модуля Maven: BUILD_MODULE (можно задать опции например clean install)
 STRING Parameter для Docker тега: DOCKER_TAG
+STRING Parameter для пути к Dockerfile: DOCKERFILE_PATH
+ # Navigate to the directory where the Dockerfile is located
+     cd "${DOCKERFILE_PATH%/*}"
 
-
+     # Build the Docker image
+     docker build -t "${DOCKER_IMAGE}:${DOCKER_TAG}" -f "${DOCKERFILE_PATH}" .
 
      # сборка Docker образа
      docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .

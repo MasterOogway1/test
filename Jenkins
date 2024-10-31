@@ -516,3 +516,16 @@ STRING Parameter для пути к Dockerfile: DOCKERFILE_PATH
 
      # пуш Docker образа в registry
      docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+
+
+
+
+- name: Extract package name from RPM filename
+  set_fact:
+    package_name: "{{ rpm_filename.split('-')[1] }}"
+
+- name: Create directory named after the package in /opt
+  file:
+    path: "/opt/{{ package_name }}"
+    state: directory
+    mode: '0755'

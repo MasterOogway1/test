@@ -643,3 +643,15 @@ switch (params.ROLES) {
         // Optionally handle unexpected roles
         echo "Unexpected role: ${params.ROLES}"
 }
+def distrib_url = "example.com/file.zip"
+
+if (distrib_url.endsWith(".zip")) {
+    println "Downloading using ZIP path"
+    // Здесь код для скачивания по пути, предназначенному для ZIP файлов
+} else if (distrib_url.endsWith(".rpm")) {
+    println "Downloading using RPM path"
+    // Здесь код для скачивания по пути, предназначенному для RPM файлов
+} else {
+    println "Unsupported file type"
+    // Здесь обработка случаев, когда тип файла не поддерживается
+}

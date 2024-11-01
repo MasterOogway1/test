@@ -546,3 +546,22 @@ pipeline {
         }
     }
 }
+---
+- name: Запуск приложения с помощью nohup
+  hosts: your_host_group
+  tasks:
+    - name: Запуск приложения
+      shell: nohup /path/to/your/application &> /path/to/logfile.log &
+      args:
+        chdir: /path/to/application/directory
+      async: 0      # Параллельное выполнение
+      poll: 0       # Не ждать выполнения задачи
+
+    - name: Проверка, что процесс запущен
+      shell: pgrep -f '/path/to/your/application'
+      register: process_check
+      failed_when: process_check.rc != 0
+
+    - name: Вывести PID запущенного процесса
+      debug:
+        msg: "PID процесса: {{ process_check.stdout }}"

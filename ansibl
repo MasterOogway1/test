@@ -627,3 +627,19 @@ script {
         echo "No RPM files found."
     }
 }
+switch (params.ROLES) {
+    case 'install_grafana':
+        extraVarsMap['grafana_rpm'] = RPM_ARCHIVE
+        break
+    case 'install_vmutils':
+        extraVarsMap['vm_archive'] = RPM_ARCHIVE
+        extraVarsMap['Pa'] = Pa
+        break
+    case 'install_victoria':
+    case 'install_node_exporter':
+        extraVarsMap['vm_archive'] = ZIP_ARCHIVE
+        break
+    default:
+        // Optionally handle unexpected roles
+        echo "Unexpected role: ${params.ROLES}"
+}

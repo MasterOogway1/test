@@ -565,3 +565,39 @@ pipeline {
     - name: Вывести PID запущенного процесса
       debug:
         msg: "PID процесса: {{ process_check.stdout }}"
+
+
+pipeline {
+    agent any
+
+    stages {
+        stage('List Archives') {
+            steps {
+                script {
+                    def tarFiles = sh(script: 'ls *.tar.gz 2>/dev/null', returnStdout: true).trim()
+                    def rpmFiles = sh(script: 'ls *.rpm 2>/dev/null', returnStdout: true).trim()
+
+                    // Проверяем, найдены ли файлы *.tar.gz
+                    if (tarFiles) {
+                        tarFiles = tarFiles.split('\n')
+                        echo "Found tar.gz archives: ${tarFiles.join(', ')}"
+                        // Устанавливаем первую переменную окружения
+                        env.ZIP_ARCHIVE = tarFiles[0]
+                    } else {
+                        echo "No tar.gz files found."
+                    }
+
+                    // Проверяем, найдены ли файлы *.rpm
+                    if (rpmFiles) {
+                        rpmFiles = rpmFiles.split('\n')
+                        echo "Found rpm archives: ${rpmFiles.join(', ')}"
+                        // Устанавливаем первую переменную окружения
+                        env.RPM_ARCHIVE = rpmFiles[0]
+                    } else {
+                        echo "No rpm files found."
+                    }
+                }
+            }
+        }
+    }
+}

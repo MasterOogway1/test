@@ -511,3 +511,38 @@ pipeline {
 }
 
 hostvars[host]['ansible_host']
+
+
+pipeline {
+    agent any
+
+    stages {
+        stage('List Archives') {
+            steps {
+                script {
+                    def tarFiles = sh(script: 'ls *.tar.gz 2>/dev/null', returnStdout: true).trim().split('\n')
+                    def rpmFiles = sh(script: 'ls *.rpm 2>/dev/null', returnStdout: true).trim().split('\n')
+
+                    // Удаляем возможные пустые элементы
+                    tarFiles = tarFiles.findAll { it }
+                    rpmFiles = rpmFiles.findAll { it }
+
+                    echo "Found tar.gz archives: ${tarFiles.join(', ')}"
+                    echo "Found rpm archives: ${rpmFiles.join(', ')}"
+
+                    // Заполняем переменные окружения
+                    if (tarFiles) {
+                        env.ZIP_ARCHIVE = tarFiles[0]
+                    }
+
+                    if (rpmFiles) {
+                        env.RPM_ARCHIVE = rpmFiles[0]
+                    }
+
+                    echo "ZIP archive stored in variable: ${env.ZIP_ARCHIVE ?: 'None'}"
+                    echo "RPM archive stored in variable: ${env.RPM_ARCHIVE ?: 'None'}"
+                }
+            }
+        }
+    }
+}

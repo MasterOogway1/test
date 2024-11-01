@@ -601,3 +601,29 @@ pipeline {
         }
     }
 }
+script {
+    def tarFilesString = sh(script: 'ls *.tar.gz 2>/dev/null || true', returnStdout: true).trim()
+    echo "tarFilesString: '${tarFilesString}'"
+    
+    def rpmFilesString = sh(script: 'ls *.rpm 2>/dev/null || true', returnStdout: true).trim()
+    echo "rpmFilesString: '${rpmFilesString}'"
+
+    // Split и присвоение переменных
+    def tarFiles = tarFilesString ? tarFilesString.split('\n') : []
+    def rpmFiles = rpmFilesString ? rpmFilesString.split('\n') : []
+    
+    // echo результатов
+    if (tarFiles) {
+        echo "Found tar.gz archives: ${tarFiles.join(', ')}"
+        env.ZIP_ARCHIVE = tarFiles[0]
+    } else {
+        echo "No tar.gz files found."
+    }
+
+    if (rpmFiles) {
+        echo "Found RPM packages: ${rpmFiles.join(', ')}"
+        env.RPM_ARCHIVE = rpmFiles[0]
+    } else {
+        echo "No RPM files found."
+    }
+}

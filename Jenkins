@@ -526,6 +526,80 @@ STRING Parameter для пути к Dockerfile: DOCKERFILE_PATH
 
 - name: Create directory named after the package in /opt
   file:
+
+
+- hosts: your_target_hosts
+  vars:
+    install_dir: /path/to/install
+    vm_archive: victoria-metrics-archive.tar.gz
+    user: "{{ ansible_ssh_user }}" # Adjust as needed
+
+  tasks:
+    - name: Ensure necessary directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ install_dir }}"
+        - "{{ install_dir }}/logs"
+        - "{{ install_dir }}/vm_data"
+        - "/home/{{ user }}/.config/systemd/user"
+      loop_control:
+        label: "{{ item }}"
+      when: install_dir is defined
+
+    - name: Stop Victoria Metrics systemd services
+      ansible.builtin.command: "systemctl --user stop {{ item }}.service"
+      loop:
+        - VmStorage
+        - VmSelect
+        - VmInsert
+      loop_control:
+        label: "{{ item }}"
+      become_user: "{{ user }}"
+      ignore_errors: yes
+
+    - name: Copy Victoria Metrics archive to remote server
+      ansible.builtin.copy:
+        src: "{{ vm_archive }}"
+        dest: "{{ install_dir }}/{{ vm_archive }}"
+        mode: '0644'
+
+    - name: Unpack Victoria Metrics archive
+      ansible.builtin.unarchive:
+        src: "{{ install_dir }}/{{ vm_archive }}"
+        dest: "{{ install_dir }}"
+        remote_src: yes
+
+    - name: Create systemd service files for Victoria Metrics
+      ansible.builtin.template:
+        src: "{{ item }}.service.j2"
+        dest: "/home/{{ user }}/.config/systemd/user/{{ item }}.service"
+        mode: '0644'
+        owner: "{{ user }}"
+        group: "{{ user }}"
+      loop:
+        - VmInsert
+        - VmSelect
+        - VmStorage
+      loop_control:
+        label: "{{ item }}"
+
+    - name: Reload systemd user daemon for Victoria Metrics
+      ansible.builtin.command: "systemctl --user daemon-reload"
+      become_user: "{{ user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/$(id -u {{ user }})"
+
+    - name: Start Victoria Metrics systemd services
+      ansible.builtin.command: "systemctl --user start {{ item }}.service"
+      loop:
+        - VmStorage
+        - VmSelect
+        - VmInsert
+      loop_control:
+        label: "{{ item }}"
+      become_user: "{{ user }}"
     path: "/opt/{{ package_name }}"
     state: directory
     mode: '0755'

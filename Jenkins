@@ -603,3 +603,17 @@ STRING Parameter для пути к Dockerfile: DOCKERFILE_PATH
     path: "/opt/{{ package_name }}"
     state: directory
     mode: '0755'
+
+
+
+
+ withCredentials([usernamePassword(credentialsId: 'my-credentials-id', 
+                                         usernameVariable: 'GIT_USERNAME', 
+                                         passwordVariable: 'GIT_PASSWORD')]) {
+                                            
+            sh """
+               git config --global user.name '$GIT_USERNAME'
+               git config --global user.password '$GIT_PASSWORD'
+               git push https://$GIT_USERNAME:$GIT_PASSWORD@<repository-url> main
+               """
+        }

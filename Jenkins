@@ -617,3 +617,42 @@ STRING Parameter для пути к Dockerfile: DOCKERFILE_PATH
                git push https://$GIT_USERNAME:$GIT_PASSWORD@<repository-url> main
                """
         }
+
+
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Отправить POST запрос с сертификатами') {
+            steps {
+                script {
+                    // Определяем URL для запроса
+                    def url = 'https://api.example.com/secure-endpoint' // Замените на ваш URL
+                    
+                    // Путь к вашему клиентскому сертификату и ключу
+                    def certPath = '/path/to/your/certificate.pem'  // Путь к файлу с сертификатом
+                    def keyPath = '/path/to/your/key.pem'            // Путь к файлу с приватным ключом
+                    def data = '{"key1": "value1", "key2": "value2"}' // Ваши данные в формате JSON
+
+                    // Выполняем httpRequest с использованием сертификатов
+                    def response = httpRequest(
+                        url: url,
+                        httpMode: 'POST',
+                        contentType: 'APPLICATION_JSON',
+                        requestBody: data,
+                        customHeaders: [[name: 'Content-Type', value: 'application/json']],
+                        validResponseCodes: '200:399',
+                        disableSslVerification: false,
+                        authentication: 'your-credentials-id',  // Убедитесь, что вы настроили Credentials в Jenkins
+                        certPath: certPath,
+                        keyPath: keyPath
+                    )
+
+                    // Выводим ответ
+                    echo "Response: ${response.content}"
+                }
+            }
+        }
+    }
+}
